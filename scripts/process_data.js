@@ -591,25 +591,16 @@ const writeJsonFileStreaming = (filePath, data, progressCallback) => {
         
         writeStream.write(`"${key}":`);
         
-        // If value is an array, stream it in batches
+        // If value is an array, stream it element by element
         if (Array.isArray(data[key])) {
           writeStream.write('[');
-          const batchSize = 1000;
-          let batch = [];
-          let batchCount = 0;
           
           for (let j = 0; j < data[key].length; j++) {
-            batch.push(JSON.stringify(data[key][j]));
+            if (j > 0) writeStream.write(',');
+            writeStream.write(JSON.stringify(data[key][j]));
             
-            if (batch.length >= batchSize || j === data[key].length - 1) {
-              const prefix = batchCount > 0 ? ',' : '';
-              writeStream.write(prefix + batch.join(','));
-              batch = [];
-              batchCount++;
-              
-              if (progressCallback && j % 5000 === 0 && data[key].length > 10000) {
-                progressCallback(key, j, data[key].length);
-              }
+            if (progressCallback && j % 5000 === 0 && data[key].length > 10000) {
+              progressCallback(key, j, data[key].length);
             }
           }
           

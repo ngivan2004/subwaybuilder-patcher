@@ -248,49 +248,31 @@ const writeJsonStream = async (filePath, data, progressBar, label) => {
     // For arrays, stream in batches
     if (Array.isArray(data)) {
       writeStream.write('[');
-      const batchSize = 1000;
-      let batch = [];
-      let batchCount = 0;
       
       for (let i = 0; i < data.length; i++) {
-        batch.push(JSON.stringify(data[i]));
+        if (i > 0) writeStream.write(',');
+        writeStream.write(JSON.stringify(data[i]));
         
-        if (batch.length >= batchSize || i === data.length - 1) {
-          const prefix = batchCount > 0 ? ',' : '';
-          writeStream.write(prefix + batch.join(','));
-          batch = [];
-          batchCount++;
-          
-          if (progressBar && i % 1000 === 0) {
-            const percent = Math.floor((i / data.length) * 100);
-            progressBar.update(percent, { stage: `${label} ${i.toLocaleString()}/${data.length.toLocaleString()}` });
-          }
+        if (progressBar && i % 1000 === 0) {
+          const percent = Math.floor((i / data.length) * 100);
+          progressBar.update(percent, { stage: `${label} ${i.toLocaleString()}/${data.length.toLocaleString()}` });
         }
       }
       
       if (progressBar) progressBar.update(100, { stage: `${label} complete` });
       writeStream.end(']', resolve);
     } 
-    // For FeatureCollections, stream features in batches
+    // For FeatureCollections, stream features individually
     else if (data && typeof data === 'object' && data.features && Array.isArray(data.features)) {
       writeStream.write('{"type":"FeatureCollection","features":[');
-      const batchSize = 1000;
-      let batch = [];
-      let batchCount = 0;
       
       for (let i = 0; i < data.features.length; i++) {
-        batch.push(JSON.stringify(data.features[i]));
+        if (i > 0) writeStream.write(',');
+        writeStream.write(JSON.stringify(data.features[i]));
         
-        if (batch.length >= batchSize || i === data.features.length - 1) {
-          const prefix = batchCount > 0 ? ',' : '';
-          writeStream.write(prefix + batch.join(','));
-          batch = [];
-          batchCount++;
-          
-          if (progressBar && i % 1000 === 0) {
-            const percent = Math.floor((i / data.features.length) * 100);
-            progressBar.update(percent, { stage: `${label} ${i.toLocaleString()}/${data.features.length.toLocaleString()}` });
-          }
+        if (progressBar && i % 1000 === 0) {
+          const percent = Math.floor((i / data.features.length) * 100);
+          progressBar.update(percent, { stage: `${label} ${i.toLocaleString()}/${data.features.length.toLocaleString()}` });
         }
       }
       

@@ -5,6 +5,7 @@ import perfConfig from '../performance_config.js';
 import cliProgress from 'cli-progress';
 import pLimit from 'p-limit';
 import { createParseStream } from 'big-json';
+import { encode as msgpackEncode } from '@msgpack/msgpack';
 
 const convertBbox = (bbox) => [bbox[1], bbox[0], bbox[3], bbox[2]];
 
@@ -629,6 +630,28 @@ out geom;`;
   }
 };
 
+// Write MessagePack binary (much faster than JSON)
+const writeMsgpackBinary = async (filePath, data, progressBar, label) => {
+  return new Promise((resolve, reject) => {
+    try {
+      progressBar.update(0, { stage: `${label} encoding` });
+      
+      // Encode to MessagePack binary (fast!)
+      const binary = msgpackEncode(data);
+      
+      progressBar.update(50, { stage: `${label} writing` });
+      
+      // Write binary to file
+      fs.writeFileSync(filePath, binary);
+      
+      progressBar.update(100, { stage: `${label} complete` });
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 // Stream write large JSON with batching for performance
 const writeJsonStream = async (filePath, data, progressBar, label) => {
   return new Promise((resolve, reject) => {
@@ -748,11 +771,11 @@ const fetchAllData = async (place) => {
     roadBar.update(0, { stage: 'Writing roads' });
     await writeJsonStream(`./raw_data/${place.code}/roads.geojson`, roadData, roadBar, 'Roads');
     
-    buildingBar.update(0, { stage: 'Writing buildings' });
-    await writeJsonStream(`./raw_data/${place.code}/buildings.json`, buildingData, buildingBar, 'Buildings');
+    buildingBar.update(0, { stage: 'Writing buildings (MessagePack)' });
+    await writeMsgpackBinary(`./raw_data/${place.code}/buildings.msgpack`, buildingData, buildingBar, 'Buildings');
     
     placesBar.update(0, { stage: 'Writing places' });
-    await writeJsonStream(`./raw_data/${place.code}/places.json`, placesData, placesBar, 'Places');
+    await writeMsgpackBinary(`./raw_data/${place.code}/places.msgpack`, placesData, placesBar, 'Places');
 
     multibar.stop();
     

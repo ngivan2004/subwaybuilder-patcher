@@ -7,6 +7,8 @@
     "all": "node --max-old-space-size=8192 ./scripts/download_data.js && node --max-old-space-size=8192 ./scripts/process_data.js && node ./scripts/patch_game.js",
     "download": "node --max-old-space-size=8192 ./scripts/download_data.js",
     "process": "node --max-old-space-size=8192 ./scripts/process_data.js",
+    "process:large": "node --max-old-space-size=16384 ./scripts/process_data.js",
+    "process:xlarge": "node --max-old-space-size=32768 ./scripts/process_data.js",
     "patch": "node ./scripts/patch_game.js",
     "all:large": "node --max-old-space-size=16384 ./scripts/download_data.js && node --max-old-space-size=16384 ./scripts/process_data.js && node ./scripts/patch_game.js",
     "all:xlarge": "node --max-old-space-size=32768 ./scripts/download_data.js && node --max-old-space-size=32768 ./scripts/process_data.js && node ./scripts/patch_game.js"
@@ -17,6 +19,7 @@
   "type": "module",
   "dependencies": {
     "@electron/asar": "^4.0.1",
+    "@msgpack/msgpack": "^3.0.0",
     "@turf/turf": "^7.2.0",
     "big-json": "^3.2.0",
     "cli-progress": "^3.12.0",

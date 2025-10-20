@@ -13,15 +13,7 @@ const calculateArea = (coords) => {
   return Math.abs(area / 2) * 111320 * 111320 * Math.cos(coords[0][1] * Math.PI / 180);
 };
 
-const calculateCentroid = (coords) => {
-  let lonSum = 0, latSum = 0;
-  const n = coords.length - 1;
-  for (let i = 0; i < n; i++) {
-    lonSum += coords[i][0];
-    latSum += coords[i][1];
-  }
-  return [lonSum / n, latSum / n];
-};
+// Centroid removed - we now use fast bbox center
 
 const squareFeetPerPopulation = {
   yes: 600, apartments: 240, barracks: 100, bungalow: 600, cabin: 600,
@@ -50,20 +42,19 @@ export default ({ buildings, startIdx, minLon, maxLon, minLat, maxLat, cellWidth
     let minBuildingLon = 9999, minBuildingLat = 9999;
     let maxBuildingLon = -999, maxBuildingLat = -999;
 
-    const __points = building.geometry.map((coord) => {
+    building.geometry.forEach((coord) => {
       if (coord.lon < minBuildingLon) minBuildingLon = coord.lon;
       if (coord.lat < minBuildingLat) minBuildingLat = coord.lat;
       if (coord.lon > maxBuildingLon) maxBuildingLon = coord.lon;
       if (coord.lat > maxBuildingLat) maxBuildingLat = coord.lat;
-      return [coord.lon, coord.lat];
     });
 
-    if (__points.length < 3) return;
-    if (__points[0][0] !== __points[__points.length - 1][0] || __points[0][1] !== __points[__points.length - 1][1]) {
-      __points.push(__points[0]);
-    }
+    // Fast bbox center (good enough for grid cell assignment!)
+    const buildingCenter = [
+      (minBuildingLon + maxBuildingLon) / 2,
+      (minBuildingLat + maxBuildingLat) / 2
+    ];
 
-    const buildingCenter = calculateCentroid(__points);
     const [lon, lat] = buildingCenter;
     const xCell = Math.min(cols - 1, Math.max(0, Math.floor((lon - minLon) / cellWidth)));
     const yCell = Math.min(rows - 1, Math.max(0, Math.floor((lat - minLat) / cellHeight)));
@@ -71,7 +62,7 @@ export default ({ buildings, startIdx, minLon, maxLon, minLat, maxLat, cellWidth
     processedBuildings.push({
       bbox: { minLon: minBuildingLon, minLat: minBuildingLat, maxLon: maxBuildingLon, maxLat: maxBuildingLat },
       center: buildingCenter,
-      tags: building.tags, // Only keep tags, not full geometry
+      tags: building.tags || {},
       id: i,
       xCellCoord: xCell,
       yCellCoord: yCell,
@@ -92,12 +83,21 @@ export const calculateBuildingStats = ({ buildings }) => {
       __coords.push(__coords[0]);
     }
 
+    // Exact area for accurate population/jobs
     const buildingAreaSqMeters = calculateArea(__coords);
     let buildingAreaMultiplier = Math.max(Number(building.tags['building:levels']), 1);
     if (isNaN(buildingAreaMultiplier)) buildingAreaMultiplier = 1;
     const buildingArea = buildingAreaSqMeters * buildingAreaMultiplier * 10.7639;
 
-    const buildingCenter = calculateCentroid(__coords);
+    // Fast bbox center (good enough for neighborhood assignment!)
+    let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+    for (const [lon, lat] of __coords) {
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+    const buildingCenter = [(minLon + maxLon) / 2, (minLat + maxLat) / 2];
 
     if (squareFeetPerPopulation[building.tags.building]) {
       const approxPop = Math.floor(buildingArea / squareFeetPerPopulation[building.tags.building]);

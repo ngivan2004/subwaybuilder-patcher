@@ -1,8 +1,8 @@
 // Performance configuration for large-scale map processing
 export default {
   // Number of worker threads for parallel processing
-  // Set to 0 to use (CPU cores - 1) automatically
-  workerThreads: 0,
+  // Set to 0 to use (CPU cores - 1), or -1 to use ALL cores
+  workerThreads: -1,  // MAXIMUM PERFORMANCE MODE: Use all cores
   
   // Tile size for Overpass queries (degrees)
   // With streaming parser, we can use much larger tiles safely

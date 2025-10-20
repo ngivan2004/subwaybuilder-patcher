@@ -580,45 +580,62 @@ const writeJsonFileStreaming = (filePath, data, progressCallback) => {
     writeStream.on('error', reject);
     writeStream.on('finish', resolve);
     
+    // Helper to handle backpressure properly
+    const writeWithBackpressure = (chunk) => {
+      return new Promise((resolveWrite) => {
+        if (!writeStream.write(chunk)) {
+          writeStream.once('drain', resolveWrite);
+        } else {
+          resolveWrite();
+        }
+      });
+    };
+    
     // Handle objects with specific structure (buildings_index, demand_data)
     if (data && typeof data === 'object') {
-      writeStream.write('{');
-      const keys = Object.keys(data);
-      
-      for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
-        if (i > 0) writeStream.write(',');
-        
-        writeStream.write(`"${key}":`);
-        
-        // If value is an array, stream it element by element
-        if (Array.isArray(data[key])) {
-          writeStream.write('[');
+      (async () => {
+        try {
+          await writeWithBackpressure('{');
+          const keys = Object.keys(data);
           
-          for (let j = 0; j < data[key].length; j++) {
-            if (j > 0) writeStream.write(',');
-            writeStream.write(JSON.stringify(data[key][j]));
+          for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            if (i > 0) await writeWithBackpressure(',');
             
-            if (progressCallback && j % 5000 === 0 && data[key].length > 10000) {
-              progressCallback(key, j, data[key].length);
+            await writeWithBackpressure(`"${key}":`);
+            
+            // If value is an array, stream it element by element
+            if (Array.isArray(data[key])) {
+              await writeWithBackpressure('[');
+              
+              for (let j = 0; j < data[key].length; j++) {
+                if (j > 0) await writeWithBackpressure(',');
+                await writeWithBackpressure(JSON.stringify(data[key][j]));
+                
+                if (progressCallback && j % 5000 === 0 && data[key].length > 10000) {
+                  progressCallback(key, j, data[key].length);
+                }
+              }
+              
+              await writeWithBackpressure(']');
+              if (progressCallback && data[key].length > 10000) {
+                progressCallback(key, data[key].length, data[key].length);
+              }
+            } else {
+              // For non-array values, stringify normally
+              await writeWithBackpressure(JSON.stringify(data[key]));
             }
           }
           
-          writeStream.write(']');
-          if (progressCallback && data[key].length > 10000) {
-            progressCallback(key, data[key].length, data[key].length);
-          }
-        } else {
-          // For non-array values, stringify normally
-          writeStream.write(JSON.stringify(data[key]));
+          writeStream.end('}');
+        } catch (err) {
+          reject(err);
         }
-      }
-      
-      writeStream.end('}', resolve);
+      })();
     } else {
       // Fallback for simple data
       try {
-        writeStream.end(JSON.stringify(data), resolve);
+        writeStream.end(JSON.stringify(data));
       } catch (error) {
         reject(error);
       }

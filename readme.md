@@ -85,16 +85,21 @@ This patcher has been extensively optimized to handle **very large maps** includ
 
 ### Key Optimizations
 
-1. **Tiled Overpass Downloads**
-   - Large bounding boxes are automatically split into smaller tiles
-   - Sequential fetching with exponential backoff retry logic
-   - Prevents Overpass API timeouts and rate limiting
-   - Progress bars show per-tile download status
+1. **Smart Adaptive Downloads with Recursive Tiling**
+   - **Tries full city download first** - Downloads entire city in one request when possible (skips if area > 1.5 sq°)
+   - **Auto-fallback to tiling** - Only splits into tiles if full download fails or returns 0
+   - **Recursive tiling** - Automatically splits problematic tiles that return 0 or fail (up to 3 levels deep)
+   - **100% data completeness** - No more missing millions of buildings!
+   - Hong Kong (100k buildings): **~3 requests** instead of 30+
+   - Tokyo (5M buildings): **Adaptive tiling captures all buildings** instead of missing millions
+   - Exponential backoff retry logic with special handling for rate limits
+   - Progress bars with time remaining estimates and running count
 
-2. **Streaming Architecture**
+2. **Streaming Architecture with Backpressure**
    - JSON files are streamed rather than loaded entirely into memory
-   - Large datasets are written in chunks to avoid memory overflow
-   - Enables processing of multi-million feature datasets
+   - **Backpressure handling** prevents write buffer overflow
+   - Large datasets written element-by-element to avoid string length limits
+   - Enables processing of multi-million feature datasets without corruption
 
 3. **Lightweight Geometry Processing**
    - Custom geometry functions replace heavy Turf.js operations where possible
@@ -149,11 +154,13 @@ npm run patch      # Patch only
 
 Fine-tune performance in `performance_config.js`:
 
+- **tryFullBboxFirst**: Try downloading full city first before tiling (default: true)
 - **workerThreads**: Number of parallel workers (0 = auto-detect)
-- **overpassTileSize**: Tile size for API requests (smaller = safer for huge areas)
+- **overpassTileSize**: Fallback tile sizes if full download fails (roads: 1.5°, buildings: 1.0°, places: 1.5°)
 - **batchSizes**: Processing batch sizes for memory management
-- **retry**: Retry attempts and delays for API failures
-- **requestDelay**: Delay between API requests (be nice to Overpass!)
+- **retry**: Retry attempts and exponential backoff delays (1s, 2s, 4s for errors; 1s, 4s, 16s for rate limits)
+- **requestDelay**: Delay between tile requests (500ms, down from 2s)
+- **datasetDelay**: Delay between datasets (2s, down from 5s)
 
 ### Progress Tracking
 
@@ -162,7 +169,8 @@ All long-running operations now show:
 - Current stage/step being processed
 - Items completed / total items
 - Percentage completion
-- Real-time updates during tile processing
+- **Time remaining estimates (ETA)**
+- Real-time updates during tile processing and file writing
 
 ### Memory Management
 

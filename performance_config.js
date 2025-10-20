@@ -5,12 +5,15 @@ export default {
   workerThreads: 0,
   
   // Tile size for Overpass queries (degrees)
-  // With streaming parser, we can use larger tiles safely
+  // With streaming parser, we can use much larger tiles safely
   overpassTileSize: {
-    roads: 0.5,
-    buildings: 0.4,  // Larger tiles now safe with streaming parser
-    places: 0.5,
+    roads: 1.5,      // Much larger tiles
+    buildings: 1.0,  // Can handle ~500k buildings per tile with streaming
+    places: 1.5,
   },
+  
+  // Try downloading full bbox first before tiling
+  tryFullBboxFirst: true,
   
   // Batch sizes for processing
   batchSizes: {
@@ -25,10 +28,10 @@ export default {
   },
   
   // Delay between Overpass requests (milliseconds)
-  requestDelay: 2000,  // 2 seconds between tile requests
+  requestDelay: 500,   // 500ms between tile requests (reduced from 2s)
   
   // Delay between dataset fetches (roads -> buildings -> places)
-  datasetDelay: 5000,  // 5 seconds between datasets
+  datasetDelay: 2000,  // 2 seconds between datasets (reduced from 5s)
   
   // Maximum concurrent place downloads (keep at 1 to avoid rate limits)
   maxConcurrentDownloads: 1,

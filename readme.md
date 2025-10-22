@@ -1,5 +1,7 @@
 # SubwayBuilder Patcher
 
+## Update from ngivan2004: I have vibe coded in multi-threading, recursive tiling, efficient grid based connections. This will be able to download and load in much bigger maps and process them much faster. Again, this is vibe coded at 2am in the morning and I take no responsibility in the code.
+
 Self explanatory title. Patches other cities into subway builder. You need to own the game already and have it on your machine. I might extend this to add features and such to subwaybuilder. I don't know. Its 9pm on a thursday as I type this. I don't even know what I'm having for lunch tomorrow; I definitely don't know where this project will be within a week.
 
 ## Support

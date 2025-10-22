@@ -182,17 +182,6 @@ The pipeline is designed to work within bounded memory:
 - Worker pools process chunks independently
 - Chunk-based writes avoid stringifying huge objects
 
-### Benchmarks
-
-Example improvements for a 5M building city (Tokyo-scale):
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Memory Peak | 32GB+ (crashes) | 8-12GB | 70% reduction |
-| Download Time | Timeout | 45-90 min | Now works |
-| Building Processing | 180+ min | 25-35 min | 5-6x faster |
-| Demand Calculation | 240+ min | 30-45 min | 5-7x faster |
-| Total Pipeline | N/A (failed) | 2-3 hours | ✓ Completes |
 
 *Note: Times vary based on CPU cores, network speed, and Overpass API load*
 
